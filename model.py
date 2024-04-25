@@ -14,9 +14,18 @@ class DoublePConv(nn.Module):
         x = self.relu(self.batchnorm(x))
         return x, mask
 
+
 class UNET(nn.Module):
     def __init__(
-            self, in_channels=3, out_channels=1, features=[64, 128, 256, 512], #height and width of layers. Change in channels to 1 for greyscale
+        self,
+        in_channels=3,
+        out_channels=1,
+        features=[
+            64,
+            128,
+            256,
+            512,
+        ],  # height and width of layers. Change in channels to 1 for greyscale
     ):
         super(UNET, self).__init__()
         self.ups = nn.ModuleList()
@@ -32,12 +41,15 @@ class UNET(nn.Module):
         for feature in reversed(features):
             self.ups.append(
                 nn.ConvTranspose2d(
-                    feature*2, feature, kernel_size=2, stride=2,        #Change to nearest neighbout upsampling
+                    feature * 2,
+                    feature,
+                    kernel_size=2,
+                    stride=2,  # Change to nearest neighbout upsampling
                 )
             )
-            self.ups.append(DoublePConv(feature*2, feature))
+            self.ups.append(DoublePConv(feature * 2, feature))
 
-        self.bottleneck = DoublePConv(features[-1], features[-1]*2)
+        self.bottleneck = DoublePConv(features[-1], features[-1] * 2)
         self.final_conv = PConv2d(features[0], out_channels, kernel_size=1)
 
     def forward(self, x, mask):
@@ -60,19 +72,22 @@ class UNET(nn.Module):
         for idx in range(0, len(self.ups), 2):
             print(type(x))
             x = self.ups[idx](x)
-            skip_connection = skip_connections[idx//2]
-            nextmask = masks[idx//2]
+            skip_connection = skip_connections[idx // 2]
+            nextmask = masks[idx // 2]
 
             if x.shape != skip_connection.shape:
                 x = TF.resize(x, size=skip_connection.shape[2:])
                 nextmask = TF.resize(mask, size=mask.shape[2:])
 
             concat_skip = torch.cat((skip_connection, x), dim=1)
-            x, nextmask = self.ups[idx+1](concat_skip, nextmask)
+            x, nextmask = self.ups[idx + 1](concat_skip, nextmask)
 
-        output, mask_placeholder = self.final_conv(x, mask)   #convolve with initial mask
+        output, mask_placeholder = self.final_conv(
+            x, mask
+        )  # convolve with initial mask
 
         return output
+
 
 def test():
     x = torch.randn((3, 1, 161, 161))
@@ -82,6 +97,7 @@ def test():
     assert preds.shape == x.shape
     print(x.shape)
     print(preds.shape)
+
 
 if __name__ == "__main__":
     test()
