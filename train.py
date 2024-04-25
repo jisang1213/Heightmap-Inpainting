@@ -1,10 +1,12 @@
 # Import the required packages.
+import os
 import random
 import numpy as np
 import torch
 import torch.optim as optim
 from torchvision import transforms
 from torch.utils.data import DataLoader
+import torchvision.utils as vutils
 import matplotlib.pyplot as plt
 
 
@@ -21,7 +23,7 @@ random.seed(0)
 torch.manual_seed(0)
 torch.cuda.manual_seed(0)
 
-# Training & optimization hyper-parameters.
+# Training & optimization hyper-parameters
 num_epochs = 10
 learning_rate = 0.1
 batch_size = 10
@@ -38,7 +40,7 @@ transform = transforms.Compose(
 
 dataset = TerrainDataset(root_dir="./data/images", transform=transform)  # CHANGE THIS
 
-train_set, test_set = torch.utils.data.random_split(dataset, [20000, 5000])
+train_set, test_set = torch.utils.data.random_split(dataset, [5000, 1000])
 train_loader = DataLoader(dataset=train_set, batch_size=batch_size, shuffle=True)
 test_loader = DataLoader(dataset=test_set, batch_size=batch_size, shuffle=True)
 
@@ -64,7 +66,10 @@ for epoch in range(num_epochs):
 
     for input, mask, img in train_loader:
         optimizer.zero_grad()
-        output = model(input, mask)  # GET MASK
+        mask_squeezed = mask.squeeze().to(torch.float32)
+        print("Shape:", mask_squeezed.shape)
+        print("Type:", mask_squeezed.dtype)
+        output = model(input, mask_squeezed)
         losses = criterion(
             input, mask, output, img
         )  # all arguments should be 4D tensors e.g. (3, 1, 200, 200)
@@ -79,7 +84,6 @@ for epoch in range(num_epochs):
         optimizer.step()
         epoch_loss += loss.item() * input.size(0)
         n_train += input.size(0)
-
     # Save losses and accuracies in a list so that we can visualize them later.
     epoch_loss /= n_train
     train_losses.append(epoch_loss)
@@ -88,10 +92,14 @@ for epoch in range(num_epochs):
     model.eval()
     n_test = 0.0
     test_loss = 0.0
+    # Create the folder to store test result images
+    results_path = "./data/results"
+    os.makedirs(results_path, exist_ok=True)
 
-    for input, mask, img in test_loader:
+    for i, (input, mask, img) in enumerate(test_loader):
         optimizer.zero_grad()
-        output = model(input, mask)  # GET MASK
+        mask_squeezed = mask.squeeze()
+        output = model(input, mask_squeezed)
         losses = criterion(
             input, mask, output, img
         )  # all arguments should be 4D tensors e.g. (3, 1, 200, 200)
@@ -107,6 +115,13 @@ for epoch in range(num_epochs):
         test_loss += loss.item() * input.size(0)
         n_test += input.size(0)
 
+        if i % 100 == 0:
+            # Save the first image tensor from the batch
+            filename = os.path.join(results_path, f"input_{i}.png")
+            vutils.save_image(input[0], filename)
+            filename = os.path.join(results_path, f"result_{i}.png")
+            vutils.save_image(output[0], filename)
+
     # Save losses and accuracies in a list so that we can visualize them later.
     test_loss /= n_test
     test_losses.append(test_loss)
@@ -119,6 +134,17 @@ for epoch in range(num_epochs):
         )
     )
 
+
+# Create a dictionary containing the model's state, optimizer state, and any additional information
+checkpoint = {
+    "model_state_dict": model.state_dict(),
+    "optimizer_state_dict": optimizer.state_dict(),
+    # Add any other information you want to save
+}
+
+# Save the model checkpoint to the file
+save_path = "./trained_model.pth"
+torch.save(checkpoint, save_path)
 
 # Visualize the losses for the train and test set.
 plt.plot(train_losses, label="train loss")

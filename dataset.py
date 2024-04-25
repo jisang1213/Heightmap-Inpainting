@@ -1,8 +1,7 @@
 import os
 import torch
 from torchvision import transforms
-from torch.utils.data import Dataset, DataLoader
-import torchvision.datasets as datasets
+from torch.utils.data import Dataset
 import matplotlib.pyplot as plt
 from PIL import Image
 from maskgenerator import MaskGenerator
@@ -57,12 +56,8 @@ if __name__ == "__main__":
     # Create an instance of the dataset
     dataset = TerrainDataset(root_dir="./data/images/", transform=transform)
 
-    # Accessing an image from the dataset
-    # Choose an index to plot (e.g., the first image in the dataset)
-    index = 0
-
     # Extract the image and label using the index
-    image, label = dataset[index]
+    image, label = dataset[0]
 
     # Convert the image tensor to a NumPy array and transpose it to the correct shape
     image_np = np.transpose(image.numpy(), (1, 2, 0))

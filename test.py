@@ -1,3 +1,6 @@
-print("HELLO THERE")
+import torch
 
-data = {1, 2, 3, 3}
+if torch.cuda.is_available():
+    print("CUDA is available!")
+else:
+    print("CUDA is not available. Using CPU instead.")
