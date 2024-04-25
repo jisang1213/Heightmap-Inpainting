@@ -3,6 +3,7 @@ import cv2
 import numpy as np
 import random
 from random import randint
+import matplotlib.pyplot as plt
 
 
 class MaskGenerator(object):
@@ -114,30 +115,36 @@ class MaskGenerator(object):
 
 
 if __name__ == "__main__":
-    NUM_MASK = 5000
-    DIR_NAME = "val_mask"
-    mask_generator = MaskGenerator(256, 256, channels=3, rand_seed=None, filepath=None)
+    # CHECKED, WORKS
+    print("Inside mask generator\n")
+    NUM_MASK = 10
+    mask_generator = MaskGenerator(200, 200, channels=1, rand_seed=None, filepath=None)
+
+    print("Checkpoint 1\n")
 
     for idx in range(NUM_MASK):
         mask = mask_generator.sample() * 255
-        cv2.imwrite("data/{}/{}.png".format(DIR_NAME, idx), mask)
-        # print(mask.shape, mask.dtype, mask.min(), mask.mean(), mask.max())
+        cv2.imwrite("./data/masks/{}.png".format(idx), mask)
 
-        # mask = cv2.imread('data/mask/{}.png'.format(idx))
-        # mask_torch = torch.from_numpy(mask)
-        # mask_torch = torch.transpose(mask_torch, 1, 2)
-        # mask_torch = torch.transpose(mask_torch, 0, 1)
-        # mask_tf = transforms.Compose([
-        #             transforms.ToPILImage(),
-        #             transforms.RandomResizedCrop(256),
-        #             transforms.ToTensor()
-        #             ])
-        # masks = mask_tf(mask_torch)
-        # utils.save_image(masks, 'data/mask/{}_tf.png'.format(idx))
+    plt.imshow(mask)
+    plt.title("Generated Mask:")
+    plt.axis("off")
+    plt.show()
 
-        # print(mask_torch.shape, mask_torch.dtype,
-        #       mask_torch.min(), mask_torch.max())
+    print("Checkpoint END\n")
+    # print(mask.shape, mask.dtype, mask.min(), mask.mean(), mask.max())
 
+    # mask = cv2.imread('data/mask/{}.png'.format(idx))
+    # mask_torch = torch.from_numpy(mask)
+    # mask_torch = torch.transpose(mask_torch, 1, 2)
+    # mask_torch = torch.transpose(mask_torch, 0, 1)
+    # mask_tf = transforms.Compose([
+    #             transforms.ToPILImage(),
+    #             transforms.RandomResizedCrop(256),
+    #             transforms.ToTensor()
+    #             ])
+    # masks = mask_tf(mask_torch)
+    # utils.save_image(masks, 'data/mask/{}_tf.png'.format(idx))
 
-if __name__ == "__main__":
-    print("mask generator")
+    # print(mask_torch.shape, mask_torch.dtype,
+    #       mask_torch.min(), mask_torch.max())

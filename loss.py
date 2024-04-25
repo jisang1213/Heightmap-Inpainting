@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 from torchvision import models
+from model import UNET
 
 
 class InpaintingLoss(nn.Module):
@@ -57,7 +58,7 @@ class VGG16FeatureExtractor(nn.Module):
 
     def __init__(self):
         super().__init__()
-        vgg16 = models.vgg16(pretrained=True)
+        vgg16 = models.vgg16(weights="DEFAULT")
         normalization = Normalization(self.MEAN, self.STD)
         # Define the each feature exractor
         self.enc_1 = nn.Sequential(normalization, *vgg16.features[:5])
@@ -135,4 +136,25 @@ def total_variation_loss(image, mask, method):
 
 
 if __name__ == "__main__":
-    print("loss")
+    print("Inside loss.py")
+
+    model = UNET(in_channels=1, out_channels=1)
+    vgg = VGG16FeatureExtractor()
+    criterion = InpaintingLoss(vgg)
+
+    # Create masks and masked input
+    img = torch.randn(3, 1, 200, 200)
+    mask = torch.ones(3, 1, 200, 200)
+    mask[:, :, 100:, :][:, :, :, 100:] = 0
+    input = img * mask
+    mask2 = mask.squeeze()
+    output = model(input, mask2)
+    losses = criterion(input, mask, output, img)
+    loss = (
+        losses["valid"]
+        + 6 * losses["hole"]
+        + 0.05 * losses["perc"]
+        + 10 * losses["style"]
+        + 0.1 * losses["tv"]
+    )
+    print(f"Loss: {loss.item()}")
