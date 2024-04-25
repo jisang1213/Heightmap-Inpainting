@@ -1,9 +1,8 @@
 import os
 import cv2
 import numpy as np
-from PIL import Image
+import random
 from random import randint
-from torchvision import transforms, utils
 
 
 class MaskGenerator(object):
@@ -37,7 +36,7 @@ class MaskGenerator(object):
 
         # Seed for reproducibility
         if rand_seed:
-            seed(rand_seed)
+            random.seed(rand_seed)
 
     def _generate_mask(self):
         """Generates a random irregular mask with lines, circles and elipses"""
@@ -107,7 +106,7 @@ class MaskGenerator(object):
     def sample(self, random_seed=None):
         """Retrieve a random mask"""
         if random_seed:
-            seed(random_seed)
+            random.seed(random_seed)
         if self.filepath and len(self.mask_files) > 0:
             return self._load_mask()
         else:
@@ -138,3 +137,7 @@ if __name__ == "__main__":
 
         # print(mask_torch.shape, mask_torch.dtype,
         #       mask_torch.min(), mask_torch.max())
+
+
+if __name__ == "__main__":
+    print("mask generator")

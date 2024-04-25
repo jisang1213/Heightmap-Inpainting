@@ -1,22 +1,17 @@
 # Import the required packages.
-import os
 import random
 import numpy as np
 import torch
 import torch.optim as optim
-import torch.nn as nn
-import torchvision.transforms.functional as TF
-import torch.nn.functional as F
-import torchvision
-from torchvision import models
 from torchvision import transforms
-from torch_pconv import PConv2d
-from torch.utils.data import Dataset, DataLoader
-from PIL import Image
+from torch.utils.data import DataLoader
 import matplotlib.pyplot as plt
 
 
 # Import modules
+from dataset import TerrainDataset
+from model import UNET
+from loss import VGG16FeatureExtractor, InpaintingLoss
 
 
 # Fix the random seed.
@@ -53,6 +48,7 @@ test_loader = DataLoader(dataset=test_set, batch_size=batch_size, shuffle=True)
 model = UNET(in_channels=1, out_channels=1)
 vgg = VGG16FeatureExtractor()
 criterion = InpaintingLoss(vgg)
+optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
 # Create masks and masked input
 img = torch.randn(1, 3, 500, 500)

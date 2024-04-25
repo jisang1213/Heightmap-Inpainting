@@ -1,4 +1,9 @@
-# Dataset
+import os
+import torch
+from torch.utils.data import Dataset
+from PIL import Image
+
+
 class TerrainDataset(Dataset):
     def __init__(self, csv_file, root_dir, transform=None):
         self.annotations = pd.read_csv(csv_file)
@@ -17,3 +22,6 @@ class TerrainDataset(Dataset):
             image = self.transform(image)
 
         return (image, y_label)
+
+if __name__ == "__main__":
+    print("dataset")

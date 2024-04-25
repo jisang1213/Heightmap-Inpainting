@@ -1,5 +1,10 @@
+import torch
+import torch.nn as nn
+from torchvision import models
+
+
 class InpaintingLoss(nn.Module):
-    def __init__(self, extractor, tv_loss='mean'):
+    def __init__(self, extractor, tv_loss="mean"):
         super(InpaintingLoss, self).__init__()
         self.tv_loss = tv_loss
         self.l1 = nn.L1Loss()
@@ -18,7 +23,7 @@ class InpaintingLoss(nn.Module):
         #           + torch.mean(torch.abs(comp[:, :, 1:, :] - comp[:, :, :-1, :]))) / 2
 
         # Hole Pixel Loss
-        hole_loss = self.l1((1-mask) * output, (1-mask) * gt)
+        hole_loss = self.l1((1 - mask) * output, (1 - mask) * gt)
 
         # Valid Pixel Loss
         valid_loss = self.l1(mask * output, mask * gt)
@@ -33,16 +38,16 @@ class InpaintingLoss(nn.Module):
         for i in range(3):
             perc_loss += self.l1(feats_out[i], feats_gt[i])
             perc_loss += self.l1(feats_comp[i], feats_gt[i])
-            style_loss += self.l1(gram_matrix(feats_out[i]),
-                                  gram_matrix(feats_gt[i]))
-            style_loss += self.l1(gram_matrix(feats_comp[i]),
-                                  gram_matrix(feats_gt[i]))
+            style_loss += self.l1(gram_matrix(feats_out[i]), gram_matrix(feats_gt[i]))
+            style_loss += self.l1(gram_matrix(feats_comp[i]), gram_matrix(feats_gt[i]))
 
-        return {'valid': valid_loss,
-                'hole': hole_loss,
-                'perc': perc_loss,
-                'style': style_loss,
-                'tv': tv_loss}
+        return {
+            "valid": valid_loss,
+            "hole": hole_loss,
+            "perc": perc_loss,
+            "style": style_loss,
+            "tv": tv_loss,
+        }
 
 
 # The network of extracting the feature for perceptual and style loss
@@ -61,13 +66,13 @@ class VGG16FeatureExtractor(nn.Module):
 
         # fix the encoder
         for i in range(3):
-            for param in getattr(self, 'enc_{}'.format(i+1)).parameters():
+            for param in getattr(self, "enc_{}".format(i + 1)).parameters():
                 param.requires_grad = False
 
     def forward(self, input):
         feature_maps = [input]
         for i in range(3):
-            feature_map = getattr(self, 'enc_{}'.format(i+1))(feature_maps[-1])
+            feature_map = getattr(self, "enc_{}".format(i + 1))(feature_maps[-1])
             feature_maps.append(feature_map)
         return feature_maps[1:]
 
@@ -114,17 +119,20 @@ def total_variation_loss(image, mask, method):
     dilated_holes = dialation_holes(hole_mask)
     colomns_in_Pset = dilated_holes[:, :, :, 1:] * dilated_holes[:, :, :, :-1]
     rows_in_Pset = dilated_holes[:, :, 1:, :] * dilated_holes[:, :, :-1:, :]
-    if method == 'sum':
-        loss = torch.sum(torch.abs(colomns_in_Pset*(
-                    image[:, :, :, 1:] - image[:, :, :, :-1]))) + \
-            torch.sum(torch.abs(rows_in_Pset*(
-                    image[:, :, :1, :] - image[:, :, -1:, :])))
+    if method == "sum":
+        loss = torch.sum(
+            torch.abs(colomns_in_Pset * (image[:, :, :, 1:] - image[:, :, :, :-1]))
+        ) + torch.sum(
+            torch.abs(rows_in_Pset * (image[:, :, :1, :] - image[:, :, -1:, :]))
+        )
     else:
-        loss = torch.mean(torch.abs(colomns_in_Pset*(
-                    image[:, :, :, 1:] - image[:, :, :, :-1]))) + \
-            torch.mean(torch.abs(rows_in_Pset*(
-                    image[:, :, :1, :] - image[:, :, -1:, :])))
+        loss = torch.mean(
+            torch.abs(colomns_in_Pset * (image[:, :, :, 1:] - image[:, :, :, :-1]))
+        ) + torch.mean(
+            torch.abs(rows_in_Pset * (image[:, :, :1, :] - image[:, :, -1:, :]))
+        )
     return loss
 
 
-
+if __name__ == "__main__":
+    print("loss")
