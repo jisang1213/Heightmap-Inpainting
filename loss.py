@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import torch.optim as optim
 from torchvision import models
 from model import UNET
 
@@ -141,20 +142,32 @@ if __name__ == "__main__":
     model = UNET(in_channels=1, out_channels=1)
     vgg = VGG16FeatureExtractor()
     criterion = InpaintingLoss(vgg)
+    optimizer = optim.Adam(model.parameters(), lr=0.01)
 
     # Create masks and masked input
-    img = torch.randn(3, 1, 200, 200)
-    mask = torch.ones(3, 1, 200, 200)
-    mask[:, :, 100:, :][:, :, :, 100:] = 0
+    img = torch.randn(3, 1, 200, 200, requires_grad=True)
+    mask = torch.ones(3, 1, 200, 200, requires_grad=True)
     input = img * mask
     mask2 = mask.squeeze()
+    
     output = model(input, mask2)
-    losses = criterion(input, mask, output, img)
-    loss = (
-        losses["valid"]
-        + 6 * losses["hole"]
-        + 0.05 * losses["perc"]
-        + 10 * losses["style"]
-        + 0.1 * losses["tv"]
-    )
+    # losses = criterion(input, mask, output, img)
+    # loss = (
+    #     losses["valid"]
+    #     + 6 * losses["hole"]
+    #     + 0.05 * losses["perc"]
+    #     + 10 * losses["style"]
+    #     + 0.1 * losses["tv"]
+    # )
+    
+    # Define a loss function
+    criterion2 = nn.L1Loss()
+    # Compute the loss
+    loss = criterion2(input, output)
+    
+    # Print and check loss
     print(f"Loss: {loss.item()}")
+    print("Starting back prop")
+    # Backward pass
+    loss.backward()
+    print("Backward propagated successfully.")

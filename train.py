@@ -14,7 +14,6 @@ import matplotlib.pyplot as plt
 from dataset import TerrainDataset
 from model import UNET
 from loss import VGG16FeatureExtractor, InpaintingLoss
-from maskgenerator import MaskGenerator
 
 
 # Fix the random seed.
@@ -26,27 +25,28 @@ torch.cuda.manual_seed(0)
 # Training & optimization hyper-parameters
 num_epochs = 10
 learning_rate = 0.1
-batch_size = 10
-device = "cuda"
+batch_size = 2
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+# device = "cpu"
 
 # Load data
 transform = transforms.Compose(
     [
-        transforms.Resize((200, 200)),  # Resize the image to 200x200
+        transforms.Resize((64, 64)),  # Resize the image to 200x200
         transforms.ToTensor(),  # Convert the image to a PyTorch tensor
-        transforms.Normalize((0.5,), (0.5,)),  # Normalize the tensor
+        transforms.Normalize((0.0,), (1.0,)),  # Normalize the tensor
     ]
 )
 
-dataset = TerrainDataset(root_dir="./data/images", transform=transform)  # CHANGE THIS
+dataset = TerrainDataset(root_dir="./data/images/", transform=transform)  # CHANGE THIS
 
 train_set, test_set = torch.utils.data.random_split(dataset, [5000, 1000])
 train_loader = DataLoader(dataset=train_set, batch_size=batch_size, shuffle=True)
 test_loader = DataLoader(dataset=test_set, batch_size=batch_size, shuffle=True)
 
 # Create model and loss function
-model = UNET(in_channels=1, out_channels=1)
-vgg = VGG16FeatureExtractor()
+model = UNET(in_channels=1, out_channels=1).to(device)
+vgg = VGG16FeatureExtractor().to(device)
 criterion = InpaintingLoss(vgg)
 optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
@@ -64,26 +64,38 @@ for epoch in range(num_epochs):
     epoch_acc = 0
     n_train = 0
 
-    for input, mask, img in train_loader:
-        optimizer.zero_grad()
-        mask_squeezed = mask.squeeze().to(torch.float32)
-        print("Shape:", mask_squeezed.shape)
-        print("Type:", mask_squeezed.dtype)
-        output = model(input, mask_squeezed)
-        losses = criterion(
-            input, mask, output, img
-        )  # all arguments should be 4D tensors e.g. (3, 1, 200, 200)
-        loss = (
-            losses["valid"]
-            + 6 * losses["hole"]
-            + 0.05 * losses["perc"]
-            + 120 * losses["style"]
-            + 0.1 * losses["tv"]
-        )
-        loss.backward()
-        optimizer.step()
-        epoch_loss += loss.item() * input.size(0)
-        n_train += input.size(0)
+    # for input, mask, img in train_loader:
+    input, mask, img = next(iter(train_loader))
+    
+    input = input.to(device)
+    mask = mask.to(device)
+    img = img.to(device)
+    
+    mask_squeezed = mask.squeeze()
+    
+    output = model(input, mask_squeezed)
+    
+    losses = criterion(
+        input, mask, output, img
+    )  # all arguments should be 4D tensors e.g. (3, 1, 200, 200)
+    loss = (
+        losses["valid"]
+        + 6 * losses["hole"]
+        + 0.05 * losses["perc"]
+        + 120 * losses["style"]
+        + 0.1 * losses["tv"]
+    )
+    optimizer.zero_grad()
+    print("Checkpoint 0")
+    loss.backward()
+    print("Checkpoint 1")
+    optimizer.step()
+    print("Checkpoint 2")
+    epoch_loss += loss.item() * input.size(0)
+    n_train += input.size(0)
+        
+        
+        
     # Save losses and accuracies in a list so that we can visualize them later.
     epoch_loss /= n_train
     train_losses.append(epoch_loss)
@@ -97,8 +109,12 @@ for epoch in range(num_epochs):
     os.makedirs(results_path, exist_ok=True)
 
     for i, (input, mask, img) in enumerate(test_loader):
-        optimizer.zero_grad()
+        input = input.to(device)
+        mask = mask.to(device)
+        img = img.to(device)
+        
         mask_squeezed = mask.squeeze()
+        
         output = model(input, mask_squeezed)
         losses = criterion(
             input, mask, output, img
@@ -110,8 +126,6 @@ for epoch in range(num_epochs):
             + 120 * losses["style"]
             + 0.1 * losses["tv"]
         )
-        loss.backward()
-        optimizer.step()
         test_loss += loss.item() * input.size(0)
         n_test += input.size(0)
 

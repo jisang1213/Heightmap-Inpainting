@@ -2,6 +2,8 @@ from torch_pconv import PConv2d
 import torch.nn as nn
 import torch
 import torchvision.transforms.functional as TF
+from torchvision import transforms
+from dataset import TerrainDataset
 import matplotlib.pyplot as plt
 
 
@@ -77,7 +79,6 @@ class UNET(nn.Module):
         masks = masks[::-1]
 
         for idx in range(0, len(self.ups), 2):
-            print(type(x))
             x = self.ups[idx](x)
             skip_connection = skip_connections[idx // 2]
             nextmask = masks[idx // 2]
@@ -100,18 +101,33 @@ class UNET(nn.Module):
 def test():
     torch.set_grad_enabled(False)
 
-    x = torch.randn((3, 1, 171, 171))
-    mask = (torch.rand(3, 171, 171) > 0.5).to(torch.float32)
+    transform = transforms.Compose(
+        [
+            transforms.Resize((64, 64)),  # Resize to a specific size
+            transforms.ToTensor(),  # Convert PIL image to tensor
+            transforms.Normalize(mean=[0.5,], std=[0.5,]),  # Normalize the image
+        ]
+    )
+
+    # Create an instance of the dataset
+    dataset = TerrainDataset(root_dir="./data/images/", transform=transform)
+
+    # Extract the image and label using the index
+    x, mask, image = dataset[0]
+    x = x.unsqueeze(0)
+    # x = torch.randn((3, 1, 171, 171))
+    # mask = (torch.rand(3, 171, 171) > 0.5).to(torch.float32)
     model = UNET(in_channels=1, out_channels=1)
+    print("shape of input:", x.shape)
+    print("shape of mask:", mask.shape)
     preds = model(x, mask)
+    print("shape of output:", preds.shape)
     assert preds.shape == x.shape
-    print(x.shape)
-    print(preds.shape)
 
     # Display image x
     plt.subplot(1, 2, 1)  # Subplot with 1 row, 2 columns, and position 1
     plt.imshow(
-        x[0].squeeze().numpy()
+        x.squeeze().numpy(), cmap='gray'
     )  # Display the first channel of the first sample in grayscale
     plt.title("Random Input:")
     plt.axis("off")
@@ -119,7 +135,7 @@ def test():
     # Display image mask
     plt.subplot(1, 2, 2)  # Subplot with 1 row, 2 columns, and position 2
     plt.imshow(
-        preds[0].squeeze().numpy()
+        preds.squeeze().numpy(), cmap='gray'
     )  # Display the first sample of the mask tensor in grayscale
     plt.title("Output:")
     plt.axis("off")
