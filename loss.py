@@ -3,6 +3,8 @@ import torch.nn as nn
 import torch.optim as optim
 from torchvision import models
 from model import UNET
+from basicUnet import basicUnet
+from simpleCNN import SimpleCNN
 
 
 class InpaintingLoss(nn.Module):
@@ -139,31 +141,24 @@ def total_variation_loss(image, mask, method):
 if __name__ == "__main__":
     print("Inside loss.py")
 
-    model = UNET(in_channels=1, out_channels=1)
-    vgg = VGG16FeatureExtractor()
-    criterion = InpaintingLoss(vgg)
-    optimizer = optim.Adam(model.parameters(), lr=0.01)
+    # model = basicUnet(in_channels=1, out_channels=1)    #test with basic UNET
+    model = SimpleCNN()
+    model.train()
 
     # Create masks and masked input
-    img = torch.randn(3, 1, 200, 200, requires_grad=True)
-    mask = torch.ones(3, 1, 200, 200, requires_grad=True)
+    img = torch.randn(3, 1, 64, 64, requires_grad=True)
+    mask = torch.ones(3, 1, 64, 64, requires_grad=True)
     input = img * mask
-    mask2 = mask.squeeze()
     
-    output = model(input, mask2)
-    # losses = criterion(input, mask, output, img)
-    # loss = (
-    #     losses["valid"]
-    #     + 6 * losses["hole"]
-    #     + 0.05 * losses["perc"]
-    #     + 10 * losses["style"]
-    #     + 0.1 * losses["tv"]
-    # )
+    # Define the ground truth (original images)
+    ground_truth = torch.randn(3, 1, 64, 64)
+
+    output = model(img)
     
     # Define a loss function
-    criterion2 = nn.L1Loss()
+    criterion = nn.MSELoss()
     # Compute the loss
-    loss = criterion2(input, output)
+    loss = criterion(output, ground_truth)
     
     # Print and check loss
     print(f"Loss: {loss.item()}")

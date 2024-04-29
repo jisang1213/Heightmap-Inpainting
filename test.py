@@ -1,39 +1,66 @@
 import torch
+import torch.nn as nn
+from torch_pconv import PConv2d
+from model import UNET
+from basicUnet import basicUnet
 
-# Define input data and target
-x = torch.tensor([[1.0, 2.0], [3.0, 4.0]], requires_grad=True)  # Input data
-y_true = torch.tensor([[0.0], [1.0]])  # Target
 
-# Define a simple linear model
-model = torch.nn.Linear(2, 1)
+print(torch.backends.cudnn.version())
 
-# Define a loss function
-criterion = torch.nn.MSELoss()
+# class CNN(nn.Module):
+#     def __init__(self):
+#         super(CNN, self).__init__()
+#         self.conv1 = PConv2d(in_channels=1, out_channels=16, kernel_size=3, stride=1, padding=1)
+#         self.conv2 = PConv2d(in_channels=16, out_channels=32, kernel_size=3, stride=1, padding=1)
+#         self.conv3 = nn.ConvTranspose2d(in_channels=32, out_channels=1, kernel_size=3, stride=1, padding=1)
+#         self.relu = nn.ReLU()
 
-# Define an optimizer
-optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
+#     def forward(self, x):
+#         x, mask = self.conv1(x, x.squeeze(0))
+#         x = self.relu(x)
+#         x, mask = self.conv2(x, mask)
+#         x = self.relu(x)
+#         x = self.conv3(x)
+#         x = self.relu(x)
+#         return x
+    
+# Create an instance of the CNN
 
-# Forward pass
-y_pred = model(x)
+# model = CNN()
+
+
+model = basicUnet()
+
+input_data = torch.randn(1, 1, 64,  64, requires_grad=True)  # Batch size 1, 1 channel, 28x28 image
+mask = torch.randn(1, 64, 64, requires_grad=True)  # Batch size 1, 1 channel, 28x28 image
+target = torch.ones(1, 1, 64, 64, requires_grad=True)
+
+# Define the loss function
+criterion = nn.MSELoss()
+
+outputs = model(input_data)
+
+print(outputs.shape)
 
 # Compute the loss
-loss = criterion(y_pred, y_true)
+loss = criterion(outputs, target)
 
-# Perform backpropagation
+print(f"Starting backprop")
+
+# Backward pass
 loss.backward()
 
-# Update model parameters
-optimizer.step()
+print(f"Backprop Successful")
 
-# Print updated parameters
-print("Updated parameters:")
-for param in model.parameters():
-    print(param.data)
+# Print loss
+print(f"Epoch 1, Loss: {loss.item()}")
 
-# Print updated gradients
-print("\nUpdated gradients:")
-for param in model.parameters():
-    print(param.grad)
+
+
+
+
+
+
 
 # if torch.cuda.is_available():
 #     print("CUDA is available!")

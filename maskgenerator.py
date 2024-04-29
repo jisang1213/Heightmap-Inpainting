@@ -126,7 +126,7 @@ if __name__ == "__main__":
         mask = mask_generator.sample() * 255
         cv2.imwrite("./data/masks/{}.png".format(idx), mask)
 
-    plt.imshow(mask)
+    plt.imshow(mask, cmap='gray')
     plt.title("Generated Mask:")
     plt.axis("off")
     plt.show()

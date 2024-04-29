@@ -25,9 +25,9 @@ torch.cuda.manual_seed(0)
 # Training & optimization hyper-parameters
 num_epochs = 10
 learning_rate = 0.1
-batch_size = 2
+batch_size = 8
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-# device = "cpu"
+device = "cpu"
 
 # Load data
 transform = transforms.Compose(
@@ -74,6 +74,7 @@ for epoch in range(num_epochs):
     mask_squeezed = mask.squeeze()
     
     output = model(input, mask_squeezed)
+    print(output.shape)
     
     losses = criterion(
         input, mask, output, img
